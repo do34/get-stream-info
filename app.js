@@ -24,7 +24,9 @@ async function getInfo(URL) {
                         source.cancel('Kill Request!');
                     }
                 });
-                stream.on('error', (err) => reject(err));
+                stream.on('error', (err) => {
+                  reject(err)
+                });
                 stream.on('end', () => resolve(""));
             })
         }
@@ -41,31 +43,48 @@ async function getInfo(URL) {
             },
         })
         .then(async (response) => {
-            if (!response.headers['icy-metaint']) {
-                return;
-            }
-
             axios.get(
                 URL, {
                 responseType: "stream",
                 headers: {
                     'User-Agent': 'Dailymate Radio/1.0',
                     'Icy-MetaData': '1',
-                    "maxContentLength": response.headers['icy-metaint']
+                    "maxContentLength": response.headers['icy-metaint'] || 16384*2
                 },
                 cancelToken: source.token
             })
             .then(async (response2) => {
                 await streamToString(response2.data)
+                console.log("got data",responsePayload)
             })
             .catch(error => {
-                resolve1(responsePayload)
+              if (error.message !== 'Kill Request!') handleError(error);
+              resolve1(responsePayload)
             });
         })
+        .catch(error => {
+          handleError(error)
+          resolve1(responsePayload)
+        });
+    });
+}
 
-    })
-        ;
-
+function handleError(error) {
+  if (error.response) {
+    // The request was made and the server responded with a status code
+    // that falls out of the range of 2xx
+    console.log(error.response.data);
+    console.log(error.response.status);
+    console.log(error.response.headers);
+  } else if (error.request) {
+    // The request was made but no response was received
+    // `error.request` is an instance of XMLHttpRequest in the browser 
+    // and an instance of http.ClientRequest in node.js
+    console.log(error.request);
+  } else {
+    // Something happened in setting up the request that triggered an Error
+    console.log('Error', error.message);
+  }
 }
 
 var cors = require('cors');
@@ -78,7 +97,14 @@ app.get("/", async (req, res) => {
     res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
     res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
 
-    let data = await getInfo(url);
+    let data =  {ok:false};
+    try {
+      data = await getInfo(url);
+    }
+    catch (e){
+      data = {ok:false, error: JSON.stringify(e)}
+    }
+    console.log("returning", data);
     res.json(data);
   }
   else {
