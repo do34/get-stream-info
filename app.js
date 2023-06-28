@@ -68,6 +68,8 @@ async function getInfo(URL) {
 
 }
 
+var cors = require('cors');
+app.use(cors());
 
 app.get("/", async (req, res) => {
   let url = req.query.url;
