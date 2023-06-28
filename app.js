@@ -74,6 +74,10 @@ app.use(cors());
 app.get("/", async (req, res) => {
   let url = req.query.url;
   if (url){
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
+    res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
+
     let data = await getInfo(url);
     res.json(data);
   }
@@ -103,7 +107,7 @@ const html = `
         });
       }, 500);
 
-      setInterval(location.reload, 5000)
+      setInterval(()=>{location.reload()}, 10000)
     </script>
     <style>
       @import url("https://p.typekit.net/p.css?s=1&k=vnd5zic&ht=tk&f=39475.39476.39477.39478.39479.39480.39481.39482&a=18673890&app=typekit&e=css");
