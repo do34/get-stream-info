@@ -22,7 +22,7 @@ async function getInfo(URL) {
           try {
             const charsetMatch = detectCharacterEncoding(chunk);
             if (charsetMatch.encoding !== 'UTF-8') {
-              responsePayload.charSet = charsetMatch.encoding;
+              responsePayload.charSet = charsetMatch;
               if (charsetMatch.encoding.indexOf("ISO-8859-8") > -1) {
                 var tempBuffer = new Buffer2(chunk, 'iso-8859-8');
                 var iconv = new Iconv('ISO-8859-8', 'UTF-8');
