@@ -2,6 +2,8 @@ const axios = require('axios');
 let URL = 'https://cdn.cybercdn.live/Radio2000/MP3/icecast.audio'
 URL = "https://broadcast.adpronet.com/radio/8010/radio.mp3"
 
+const detectCharacterEncoding = require('detect-character-encoding');
+
 async function getInfo(URL) {
     return new Promise((resolve1, reject1) => {
         const responsePayload = {

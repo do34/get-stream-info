@@ -3,94 +3,97 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 const detectCharacterEncoding = require('detect-character-encoding');
-var Iconv  = require('iconv').Iconv;
+var Iconv = require('iconv').Iconv;
 var Buffer2 = require('buffer').Buffer;
 const axios = require('axios');
 
 async function getInfo(URL) {
-    return new Promise((resolve1, reject1) => {
-        const responsePayload = {
-            url: URL,
-            ok: false,
-            data: ""
-        }
+  return new Promise((resolve1, reject1) => {
+    const responsePayload = {
+      url: URL,
+      ok: false,
+      data: ""
+    }
 
-        function streamToString(stream) {
-            return new Promise((resolve, reject) => {
-                stream.on('data', (chunk) => {
-                  let str = "";
-                  try {
-                    const charsetMatch = detectCharacterEncoding(chunk);
-                    if (charsetMatch.encoding == 'UTF-8'){
-                      str = Buffer.from(chunk).toString();
-                    }
-                    else if (charsetMatch.encoding.indexOf("ISO-8859-8")>-1){
-                      var tempBuffer = new Buffer2(chunk, 'iso-8859-8');
-                      var iconv = new Iconv('ISO-8859-8', 'UTF-8');
-                      var tempBuffer = iconv.convert(tempBuffer);
-                      str =  Buffer.from(tempBuffer).toString();
-                    }
-                    else {
-                      responsePayload.charSet = charsetMatch.encoding;
-                    }
-                  }
-                  catch (e) {
-                    str = Buffer.from(chunk).toString();
-                    responsePayload.charSet = charsetMatch ? charsetMatch.encoding : "unknown";
-                    responsePayload.error = JSON.stringify(e);
-                  }
-                  
-                  const idx = str.indexOf(needle);
-                  if (idx > -1) {
-                      let data = str.substring(idx + needle.length);
-                      responsePayload.data = data.substring(0, data.indexOf(";")).replace(/['"]/g, "");
-                      responsePayload.ok = true;
-                      source.cancel('Kill Request!');
-                  }
-                });
-                stream.on('error', (err) => {
-                  reject(err)
-                });
-                stream.on('end', () => resolve(""));
-            })
-        }
+    function streamToString(stream) {
+      return new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => {
+          let str = Buffer.from(chunk).toString();
+          try {
+            const charsetMatch = detectCharacterEncoding(chunk);
+            if (charsetMatch.encoding !== 'UTF-8') {
+              responsePayload.charSet = charsetMatch.encoding;
+              if (charsetMatch.encoding.indexOf("ISO-8859-8") > -1) {
+                var tempBuffer = new Buffer2(chunk, 'iso-8859-8');
+                var iconv = new Iconv('ISO-8859-8', 'UTF-8');
+                var tempBuffer = iconv.convert(tempBuffer);
+                str = Buffer.from(tempBuffer).toString();
+              }
+              else if (charsetMatch.encoding.indexOf("1255") > -1) {
+                var tempBuffer = new Buffer2(chunk, 'CP1255');
+                var iconv = new Iconv('CP1255', 'UTF-8');
+                var tempBuffer = iconv.convert(tempBuffer);
+                str = Buffer.from(tempBuffer).toString();
+              }
+            }
+          }
+          catch (e) {
+            str = Buffer.from(chunk).toString();
+            responsePayload.charSet = charsetMatch ? charsetMatch.encoding : "unknown";
+            responsePayload.error = JSON.stringify(e);
+          }
 
-        const CancelToken = axios.CancelToken;
-        const source = CancelToken.source();
-        const needle = 'StreamTitle=';
-
-        axios.head(
-            URL, {
-            headers: {
-                'User-Agent': 'Dailymate Radio/1.0',
-                'Icy-MetaData': '1',
-            },
-        })
-        .then(async (response) => {
-            axios.get(
-                URL, {
-                responseType: "stream",
-                headers: {
-                    'User-Agent': 'Dailymate Radio/1.0',
-                    'Icy-MetaData': '1',
-                    "maxContentLength": response.headers['icy-metaint'] || 16384*2
-                },
-                cancelToken: source.token
-            })
-            .then(async (response2) => {
-                await streamToString(response2.data)
-                console.log("got data",responsePayload)
-            })
-            .catch(error => {
-              if (error.message !== 'Kill Request!') handleError(error);
-              resolve1(responsePayload)
-            });
-        })
-        .catch(error => {
-          handleError(error)
-          resolve1(responsePayload)
+          const idx = str.indexOf(needle);
+          if (idx > -1) {
+            let data = str.substring(idx + needle.length);
+            responsePayload.data = data.substring(0, data.indexOf(";")).replace(/['"]/g, "");
+            responsePayload.ok = true;
+            source.cancel('Kill Request!');
+          }
         });
-    });
+        stream.on('error', (err) => {
+          reject(err)
+        });
+        stream.on('end', () => resolve(""));
+      })
+    }
+
+    const CancelToken = axios.CancelToken;
+    const source = CancelToken.source();
+    const needle = 'StreamTitle=';
+
+    axios.head(
+      URL, {
+      headers: {
+        'User-Agent': 'Dailymate Radio/1.0',
+        'Icy-MetaData': '1',
+      },
+    })
+      .then(async (response) => {
+        axios.get(
+          URL, {
+          responseType: "stream",
+          headers: {
+            'User-Agent': 'Dailymate Radio/1.0',
+            'Icy-MetaData': '1',
+            "maxContentLength": response.headers['icy-metaint'] || 16384 * 2
+          },
+          cancelToken: source.token
+        })
+          .then(async (response2) => {
+            await streamToString(response2.data)
+            console.log("got data", responsePayload)
+          })
+          .catch(error => {
+            if (error.message !== 'Kill Request!') handleError(error);
+            resolve1(responsePayload)
+          });
+      })
+      .catch(error => {
+        handleError(error)
+        resolve1(responsePayload)
+      });
+  });
 }
 
 function handleError(error) {
@@ -116,17 +119,17 @@ app.use(cors());
 
 app.get("/", async (req, res) => {
   let url = req.query.url;
-  if (url){
+  if (url) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
     res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
 
-    let data =  {ok:false};
+    let data = { ok: false };
     try {
       data = await getInfo(url);
     }
-    catch (e){
-      data = {ok:false, error: JSON.stringify(e)}
+    catch (e) {
+      data = { ok: false, error: JSON.stringify(e) }
     }
     console.log("returning", data);
     res.json(data);
