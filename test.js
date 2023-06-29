@@ -1,5 +1,6 @@
 const axios = require('axios');
-const URL = 'https://broadcast.adpronet.com/radio/8010/radio.mp3'
+let URL = 'https://cdn.cybercdn.live/Radio2000/MP3/icecast.audio'
+URL = "https://broadcast.adpronet.com/radio/8010/radio.mp3"
 
 async function getInfo(URL) {
     return new Promise((resolve1, reject1) => {
@@ -12,12 +13,25 @@ async function getInfo(URL) {
         function streamToString(stream) {
             return new Promise((resolve, reject) => {
                 stream.on('data', (chunk) => {
-                    const str = Buffer.from(chunk).toString();
+                    const charsetMatch = detectCharacterEncoding(chunk);
+                    let str = "";
+                    if (charsetMatch.encoding == 'UTF-8'){
+                        str = Buffer.from(chunk).toString();
+                    }
+                    else if (charsetMatch.encoding.indexOf("ISO-8859-8")>-1){
+                        var Iconv  = require('iconv').Iconv;
+                        var Buffer2 = require('buffer').Buffer;
+                        var tempBuffer = new Buffer2(chunk, 'iso-8859-8');
+                        var iconv = new Iconv('ISO-8859-8', 'UTF-8');
+                        var tempBuffer = iconv.convert(tempBuffer);
+                        str =  Buffer.from(tempBuffer).toString();
+                    }
                     const idx = str.indexOf(needle);
                     if (idx > -1) {
                         let data = str.substring(idx + needle.length);
                         responsePayload.data = data.substring(0, data.indexOf(";")).replace(/['"]/g, "");
                         responsePayload.ok = true;
+                        responsePayload.charSet = charsetMatch;
                         source.cancel('Kill Request!');
                     }
                 });

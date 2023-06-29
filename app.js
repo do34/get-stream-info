@@ -2,6 +2,9 @@ const express = require("express");
 const app = express();
 const port = process.env.PORT || 3001;
 
+const detectCharacterEncoding = require('detect-character-encoding');
+var Iconv  = require('iconv').Iconv;
+var Buffer2 = require('buffer').Buffer;
 const axios = require('axios');
 
 async function getInfo(URL) {
@@ -15,14 +18,35 @@ async function getInfo(URL) {
         function streamToString(stream) {
             return new Promise((resolve, reject) => {
                 stream.on('data', (chunk) => {
-                    const str = Buffer.from(chunk).toString();
-                    const idx = str.indexOf(needle);
-                    if (idx > -1) {
-                        let data = str.substring(idx + needle.length);
-                        responsePayload.data = data.substring(0, data.indexOf(";")).replace(/['"]/g, "");
-                        responsePayload.ok = true;
-                        source.cancel('Kill Request!');
+                  let str = "";
+                  try {
+                    const charsetMatch = detectCharacterEncoding(chunk);
+                    if (charsetMatch.encoding == 'UTF-8'){
+                      str = Buffer.from(chunk).toString();
                     }
+                    else if (charsetMatch.encoding.indexOf("ISO-8859-8")>-1){
+                      var tempBuffer = new Buffer2(chunk, 'iso-8859-8');
+                      var iconv = new Iconv('ISO-8859-8', 'UTF-8');
+                      var tempBuffer = iconv.convert(tempBuffer);
+                      str =  Buffer.from(tempBuffer).toString();
+                    }
+                    else {
+                      responsePayload.charSet = charsetMatch.encoding;
+                    }
+                  }
+                  catch (e) {
+                    str = Buffer.from(chunk).toString();
+                    responsePayload.charSet = charsetMatch ? charsetMatch.encoding : "unknown";
+                    responsePayload.error = JSON.stringify(e);
+                  }
+                  
+                  const idx = str.indexOf(needle);
+                  if (idx > -1) {
+                      let data = str.substring(idx + needle.length);
+                      responsePayload.data = data.substring(0, data.indexOf(";")).replace(/['"]/g, "");
+                      responsePayload.ok = true;
+                      source.cancel('Kill Request!');
+                  }
                 });
                 stream.on('error', (err) => {
                   reject(err)
