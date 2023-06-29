@@ -29,6 +29,12 @@ async function getInfo(URL) {
                 var tempBuffer = iconv.convert(tempBuffer);
                 str = Buffer.from(tempBuffer).toString();
               }
+              else if (charsetMatch.encoding.indexOf("ISO-8859-1") > -1) {
+                var tempBuffer = new Buffer2(chunk, 'iso-8859-1');
+                var iconv = new Iconv('ISO-8859-1', 'UTF-8');
+                var tempBuffer = iconv.convert(tempBuffer);
+                str = Buffer.from(tempBuffer).toString();
+              }
               else if (charsetMatch.encoding.indexOf("1255") > -1) {
                 var tempBuffer = new Buffer2(chunk, 'CP1255');
                 var iconv = new Iconv('CP1255', 'UTF-8');
