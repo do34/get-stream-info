@@ -19,24 +19,25 @@ async function getInfo(URL) {
       return new Promise((resolve, reject) => {
         stream.on('data', (chunk) => {
           let str = Buffer.from(chunk).toString();
+          const charsetMatch = detectCharacterEncoding(chunk);
           try {
-            const charsetMatch = detectCharacterEncoding(chunk);
-            if (charsetMatch.encoding !== 'UTF-8') {
+            const automaticEnc = ["UTF-16BE",'UTF-8']
+            if (automaticEnc.indexOf(charsetMatch.encoding) < 0) {
               responsePayload.charSet = charsetMatch;
-              if (charsetMatch.encoding.indexOf("ISO-8859-8") > -1) {
-                var tempBuffer = new Buffer2(chunk, 'iso-8859-8');
+              if (charsetMatch.encoding.indexOf("ISO-8859") > -1) {
+                var tempBuffer = new Buffer2.from(chunk, 'iso-8859-8');
                 var iconv = new Iconv('ISO-8859-8', 'UTF-8');
                 var tempBuffer = iconv.convert(tempBuffer);
                 str = Buffer.from(tempBuffer).toString();
               }
-              else if (charsetMatch.encoding.indexOf("ISO-8859-1") > -1) {
-                var tempBuffer = new Buffer2(chunk, 'iso-8859-1');
-                var iconv = new Iconv('ISO-8859-1', 'UTF-8');
-                var tempBuffer = iconv.convert(tempBuffer);
-                str = Buffer.from(tempBuffer).toString();
-              }
+              // else if (charsetMatch.encoding.indexOf("ISO-8859-1") > -1) {
+              //   var tempBuffer = new Buffer2(chunk, 'iso-8859-1');
+              //   var iconv = new Iconv('ISO-8859-1', 'UTF-8');
+              //   var tempBuffer = iconv.convert(tempBuffer);
+              //   str = Buffer.from(tempBuffer).toString();
+              // }
               else if (charsetMatch.encoding.indexOf("1255") > -1) {
-                var tempBuffer = new Buffer2(chunk, 'CP1255');
+                var tempBuffer = new Buffer2.from(chunk, 'CP1255');
                 var iconv = new Iconv('CP1255', 'UTF-8');
                 var tempBuffer = iconv.convert(tempBuffer);
                 str = Buffer.from(tempBuffer).toString();
@@ -124,11 +125,11 @@ var cors = require('cors');
 app.use(cors());
 
 app.get("/", async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
+  res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
   let url = req.query.url;
   if (url) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
-    res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
 
     let data = { ok: false };
     try {
@@ -157,16 +158,16 @@ const html = `
     <title>Hello from Render v2!</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script>
-      setTimeout(() => {
+      setInterval(() => {
         confetti({
           particleCount: 100,
           spread: 70,
           origin: { y: 0.6 },
           disableForReducedMotion: true
         });
-      }, 500);
+      }, 5000);
 
-      setInterval(()=>{location.reload()}, 10000)
+      // setInterval(()=>{location.reload()}, 10000)
     </script>
     <style>
       @import url("https://p.typekit.net/p.css?s=1&k=vnd5zic&ht=tk&f=39475.39476.39477.39478.39479.39480.39481.39482&a=18673890&app=typekit&e=css");
