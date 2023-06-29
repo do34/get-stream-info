@@ -21,7 +21,7 @@ async function getInfo(URL) {
                     let str = Buffer.from(chunk).toString();
                     const charsetMatch = detectCharacterEncoding(chunk);
                     try {
-                      const automaticEnc = ["UTF-16BE",'UTF-8']
+                      const automaticEnc = ["UTF-16BE","UTF-16LE",'UTF-8',"windows-1252","windows-1253"]
                       if (charsetMatch && automaticEnc.indexOf(charsetMatch.encoding) < 0) {
                         responsePayload.charSet = charsetMatch;
                         if (charsetMatch.encoding.indexOf("ISO-8859") > -1) {
