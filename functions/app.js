@@ -1,5 +1,7 @@
 const express = require("express");
 const app = express();
+const router = express.Router();
+const serverless = require("serverless-http");
 const port = process.env.PORT || 3001;
 
 const detectCharacterEncoding = require('detect-character-encoding');
@@ -112,7 +114,7 @@ function handleError(error) {
     console.log(error.response.headers);
   } else if (error.request) {
     // The request was made but no response was received
-    // `error.request` is an instance of XMLHttpRequest in the browser 
+    // `error.request` is an instance of XMLHttpRequest in the browser
     // and an instance of http.ClientRequest in node.js
     console.log(error.request);
   } else {
@@ -124,7 +126,7 @@ function handleError(error) {
 var cors = require('cors');
 app.use(cors());
 
-app.get("/", async (req, res) => {
+router.get("/", async (req, res) => {
   var origin = req.get('origin');
 
   res.header("Access-Control-Allow-Origin", origin ? origin : "*");
@@ -149,10 +151,15 @@ app.get("/", async (req, res) => {
   }
 });
 
-const server = app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+app.use('/.netlify/functions/app',router)
+module.exports.handler = serverless(app)
 
-server.keepAliveTimeout = 120 * 1000;
-server.headersTimeout = 120 * 1000;
+// const server = app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+
+// server.keepAliveTimeout = 120 * 1000;
+// server.headersTimeout = 120 * 1000;
+
+
 
 const html = `
 <!DOCTYPE html>
